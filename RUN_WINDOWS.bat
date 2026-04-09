@@ -1,4 +1,6 @@
 @echo off
+chcp 65001 > nul
+set PYTHONUTF8=1
 setlocal enabledelayedexpansion
 
 :: IMPORTANT: Change to the directory where this script lives
@@ -69,11 +71,18 @@ if !errorlevel! neq 0 (
 echo Installing Python 3.12... Please wait, this might take a minute.
 start /wait python_installer.exe /quiet InstallAllUsers=0 PrependPath=1 Include_test=0
 if exist python_installer.exe del /f /q python_installer.exe
-echo [OK] Python 3.12 installed successfully!
-echo [INFO] Restarting script to apply changes...
+echo.
+echo ==================================================
+echo   [OK] Python 3.12 installed successfully!
+echo ==================================================
+echo.
+echo   IMPORTANT: You must now CLOSE this window completely,
+echo   then DOUBLE-CLICK RUN_WINDOWS.bat again to start.
+echo.
+echo   (Windows needs a fresh terminal to see the new Python.)
+echo   Do NOT click restart inside this window - it will not work.
 echo.
 pause
-start "" "%~f0"
 exit /b
 
 :PYTHON_OK
@@ -175,7 +184,7 @@ if !errorlevel! neq 0 (
         echo   Your internet or firewall may be blocking package downloads.
     )
     echo.
-    echo   Full log saved to: %cd%\install_log.txt
+    echo   Full log saved to: "%cd%\install_log.txt"
     echo.
     goto :FAIL
 )
@@ -185,6 +194,19 @@ echo.
 echo ==================================================
 echo   [OK] All dependencies installed successfully!
 echo ==================================================
+echo.
+
+:: ---- Step 4.5: Download AI models (first time only) ----
+echo [STEP *] Checking AI models (first-time may download ~275MB)...
+python -c "from services.model_manager import ensure_models; ok = ensure_models(); exit(0 if ok else 1)"
+if !errorlevel! neq 0 (
+    echo.
+    echo [ERROR] Failed to download AI models!
+    echo    Please check your internet connection and try again.
+    echo.
+    goto :FAIL
+)
+echo [OK] AI models ready.
 echo.
 
 :: ---- Step 5: System check ----
@@ -211,6 +233,9 @@ echo ==================================================
 echo   Setup did NOT complete successfully.
 echo   Review the errors above for details.
 echo ==================================================
+echo.
+echo Press any key to close this window...
+pause >nul
 
 :END
 echo.
